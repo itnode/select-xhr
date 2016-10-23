@@ -1,0 +1,179 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+
+    Aquire a value from an input field, combine with value present
+
+Example:
+
+
+        <special-element id="source" …>
+        <input is="select-xhr" type="text" select-xhr="source.name"  name="xxxe"  value="" />
+
+
+@demo
+-->
+<dom-module id="select-xhr">
+
+  <style>
+    :host {
+       }
+
+  </style>
+
+  <template>
+    <content></content>
+
+  <iron-ajax
+    id="sbackend"
+    auto="false"
+    handle-as="json"
+    on-response="hresponse"
+    debounce-duration="150"></iron-ajax> 
+
+  </template>
+
+</dom-module>
+
+<script>
+
+  Polymer({
+
+    is: 'select-xhr',
+   
+    extends: 'select',
+
+    properties: {
+
+      /**
+       * `value-name` is the unique name of the calc
+       */
+      remoteSrc: String,
+      remoteSelected: String,
+      sourceId: String,
+   },
+
+    // Element Lifecycle
+
+    ready: function() {
+      // `ready` is called after all elements have been configured, but
+      // propagates bottom-up. This element's children are ready, but parents
+      // are not.
+      //
+      // This is the point where you should make modifications to the DOM (when
+      // necessary), or kick off any processes the element wants to perform.
+    },
+
+    attached: function() {
+      // `attached` fires once the element and its parents have been inserted
+      // into a document.
+      //
+      // This is a good place to perform any work related to your element's
+      // visual state or active behavior (measuring sizes, beginning animations,
+      // loading resources, etc).
+            
+        var these = this;
+  
+        // connect to source
+        these.source_id = these.sourceId;
+        these.source = document.getElementById(these.source_id);
+        these.source.addEventListener('select-single-set', these.updateValue.bind(these));
+
+        these.updateValue();
+   },
+
+    
+
+    detached: function() {
+      // The analog to `attached`, `detached` fires when the element has been
+      // removed from a document.
+      //
+      // Use this to clean up anything you did in `attached`.
+
+        var these = this;
+   
+        // remove event listener on source
+        these.source.removeEventListener('select-single-set', these.updateValue.bind(these));
+    },
+
+    // Element Behavior
+
+    updateValue: function(e) {
+
+        var these   = this;
+        var uri    = new URI(these.remoteSrc);
+        var params = uri.search(true);
+        params[these.source.return_hidden.name] = these.source.return_hidden.value;
+
+        if ( these.currentValue !== these.source.return_hidden.value ) { 
+        
+            these.currentValue = these.source.return_hidden.value;
+            these.$.sbackend.url    = uri.query("").toString();
+            these.$.sbackend.params = params;
+            these.$.sbackend.generateRequest();
+        }
+    },
+
+    hresponse: function(request) {
+
+        if ( request.detail.response !== null ) { 
+
+            these = this;
+
+            these.items       = request.detail.response.items;
+
+            if ( these.items.length === 0) {
+            
+                while (these.children.length > 1) {
+                    these.removeChild(these.lastChild);
+                }
+
+            } else {
+
+                while (these.children.length > 1) {
+                  these.removeChild(these.lastChild);
+                }
+
+                these.items.forEach( function(item)  {
+
+                    var opt = document.createElement('option');
+
+                    opt.value    = item.value;
+                    opt.text     = item.name;
+                    
+                    if ( these.remoteSelected ) { 
+
+                        // Set on attribute
+                        opt.selected = these.remoteSelected === item.value;
+                    
+                    } else {
+
+                        // Set on remote selection
+                        opt.selected = item.selected === 1;
+                    }
+
+                    
+
+                    these.appendChild(opt);
+                });
+                
+            }
+
+        } else {
+
+        }
+    },
+
+  });
+
+
+</script>
